@@ -1,8 +1,8 @@
 # PrepareForExam
-translate your questions to app. easier to prepare for exam
+translate your questions to app. easier to prepare for exam.
 
 # analyse Q&A
-use py file to analyse your questions and ansewers in text
+use py file to analyse your questions and ansewers in text.
 Most likely, you need to make some modifications.
 
 # put your analysis	result to js
