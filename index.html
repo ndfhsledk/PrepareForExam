@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <title></title>
+    <script src="js/mui.min.js"></script>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <script type="text/javascript" charset="utf-8">
+        mui.init();
+    </script>
+    <style>
+        .card-box {
+            padding: 0.5rem 0rem 2rem 0rem;
+        }
+    </style>
+
+</head>
+<body class="like-page">
+	<div class="mui-bar mui-bar-nav">
+    <div class="mui-icon mui-pull-right  mui-icon-reload" onclick="javascript:window.history.go(0);"></div>
+</div>
+<div id="chooseExam" class="mui-content-padded mui-content like-page">
+    <button class="mui-btn mui-btn-block">跳转测试</button>
+    <div class="card-box" id="p1e">
+        <h4>顺着做题</h4>
+
+    </div>
+    <div class="card-box">
+        <h4>随机抽题</h4>
+        <button type="button" class="mui-btn" onclick="goRandomExam();">开始</button>
+    </div>
+    <div class="card-box" id="p3e">
+        <h4>只做错题（做错误次数最多的题）</h4>
+
+    </div>
+    <div class="card-box">
+        <h4>只看答案</h4>
+        <button type="button" class="mui-btn" onclick="goAnswerAll();">全部</button>
+        <button type="button" class="mui-btn" onclick="goAnswerWrong();">错题</button>
+        <button type="button" class="mui-btn" onclick="goAnswerCollect();">收藏</button>
+    </div>
+</div>
+
+</body>
+<script src="js/zepto.js"></script>
+<script src="js/singleQ.js"></script>
+<script src="js/multipleQ.js"></script>
+<script src="js/trueOrFalseQ.js"></script>
+<script src="js/common.js"></script>
+<script>
+
+    function dictKeys(dict){
+        var result = [];
+        for(var i in dict){
+            result.push(i);
+        }
+        return result;
+    }
+
+    var configSet = {
+        p1Count: 10,
+        p3Interval: 50,
+        singleMax: singleQ.length,
+        multipleMax: multipleQ.length,
+        trueOrFalseMax: trueOrFalseQ.length,
+        singleWrong: recorder.single.all(),
+        multipleWrong: recorder.multiple.all(),
+        trueOrFalseWrong: recorder.trueOrFalse.all(),
+        singleCollect: collect.single.all(),
+        multipleCollect: collect.multiple.all(),
+        trueOrFalseCollect: collect.trueOrFalse.all()
+    }
+    //处理第一部分
+    var html1 = '';
+    for(var i=0 ; i<configSet.p1Count; i++){
+       html1 += '<button class="mui-btn" onclick="goExam('+ i +')">'+(i+1)+'</button>';
+    }
+    $("#p1e").append(html1);
+    //处理第三部分
+    var p3d = [];
+    var totalWrong = configSet.singleWrong.length + configSet.multipleWrong.length + configSet.trueOrFalseWrong.length;
+    var p3Count = Math.ceil(totalWrong/configSet.p3Interval);
+    var p3t1Interval = Math.ceil(configSet.singleWrong.length/p3Count);
+    var p3t2Interval = Math.ceil(configSet.multipleWrong.length/p3Count);
+    var p3t3Interval = Math.ceil(configSet.trueOrFalseWrong.length/p3Count);
+    if ((p3t1Interval + p3t2Interval + p3t3Interval) * (p3Count - 1) == totalWrong){
+        p3Count -= 1;
+    }
+    var html3 = '';
+    for(var i=0 ; i<p3Count; i++){
+        html3 += '<button class="mui-btn" onclick="goExamWrong('+ i +')">'+ (i+1) +'</button>';
+    }
+    $("#p3e").append(html3);
+
+
+    function goRandomExam() {
+        router.pushToExam({
+            "isSequence": false,
+            "t1": ramdomNumbers(configSet.singleMax, 40),
+            "t2": ramdomNumbers(configSet.multipleMax, 40),
+            "t3": ramdomNumbers(configSet.trueOrFalseMax, 20)});
+    }
+
+    function goAnswerAll(){
+        router.pushToExam({
+            "isSequence": true,
+            "showAnswer": true,
+            "t1": {start: 0, end: singleQ.length},
+            "t2": {start: 0, end: multipleQ.length},
+            "t3": {start: 0, end: trueOrFalseQ.length}
+        });
+    }
+
+    function goAnswerWrong(){
+        if (totalWrong == 0){
+            mui.toast("你还没有错题记录");
+            return;
+        }
+        router.pushToExam({
+            "isSequence": false,
+            "showAnswer": true,
+            "t1": configSet.singleWrong,
+            "t2": configSet.multipleWrong,
+            "t3": configSet.trueOrFalseWrong
+        });
+    }
+
+    function goAnswerCollect() {
+        if ((configSet.singleCollect.length + configSet.multipleCollect.length + configSet.trueOrFalseCollect.length) == 0){
+            mui.toast("你还没有收藏记录");
+            return;
+        }
+        router.pushToExam({
+            "isSequence": false,
+            "showAnswer": true,
+            "t1": configSet.singleCollect,
+            "t2": configSet.multipleCollect,
+            "t3": configSet.trueOrFalseCollect
+        });
+    }
+
+    function goExam(index) {
+        var t1 = problemNumbers(configSet.singleMax, configSet.p1Count, index);
+        var t2 = problemNumbers(configSet.multipleMax, configSet.p1Count, index);
+        var t3 = problemNumbers(configSet.trueOrFalseMax, configSet.p1Count, index);
+        router.pushToExam({"isSequence": true, "t1": t1, "t2": t2, "t3": t3});
+    }
+
+    function goExamWrong(index){
+        var t1 = configSet.singleWrong.slice(index*p3t1Interval,(index+1) *p3t1Interval);
+        var t2 = configSet.singleWrong.slice(index*p3t2Interval,(index+1) *p3t2Interval);
+        var t3 = configSet.singleWrong.slice(index*p3t3Interval,(index+1) *p3t3Interval);
+        router.pushToExam({"isSequence": false, "t1": t1, "t2": t2, "t3": t3});
+    }
+
+    function ramdomNumbers(high, count) {
+        var dict = {};
+        while(dictKeys(dict).length < count){
+            var randomNo = Math.floor(Math.random() * high);
+            dict[randomNo] = true;
+        }
+        return dictKeys(dict);
+    }
+
+    function problemNumbers(problemCount, partCount, index) {
+        var interval = problemCount/partCount
+        interval = Math.ceil(interval);
+        var start = interval * index;
+        var end = interval * (index + 1);
+        if( end > problemCount){
+            end = problemCount
+        }
+        return {"start": start, "end": end};
+    }
+
+
+</script>
+</html>

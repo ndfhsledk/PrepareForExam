@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <title></title>
+    <script src="js/mui.min.js"></script>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <script type="text/javascript" charset="utf-8">
+        mui.init();
+    </script>
+    <style>
+        .correct-answer {
+            color: green;
+        }
+
+        .right-star {
+            position: absolute;
+            right: 0.4rem;
+            top: 0rem;
+        }
+    </style>
+</head>
+<body class="like-page">
+<div class="mui-bar mui-bar-nav">
+    <div class="mui-icon mui-icon-left-nav" onclick="window.history.go(-1);"></div>
+    <div class="mui-icon mui-pull-right mui-icon-reload" onclick="javascript:window.history.go(0);"></div>
+</div>
+<div id="exam" class="mui-content like-page">
+    <br>
+    <div id="questionPart">
+        <div>单选题
+            <ol id="singleEle">
+            </ol>
+        </div>
+        <div>多选题
+            <ol id="multipleEl">
+            </ol>
+        </div>
+        <div>判断题
+            <ol id="trueOrFalseEl">
+            </ol>
+        </div>
+    </div>
+    <div id="pointEl">
+    </div>
+    <div id="others" class="mui-content-padded">
+    </div>
+</div>
+</body>
+<script src="js/singleQ.js"></script>
+<script src="js/multipleQ.js"></script>
+<script src="js/trueOrFalseQ.js"></script>
+<script src="js/common.js"></script>
+<script src="js/zepto.js"></script>
+<script>
+
+    var args = router.examGetArgs();
+    var singleArray=[], multipleArray=[], trueOrFalseArray=[];
+    // t1, t2, t3 分别是 单选，多选
+    var collection = {
+        single: collect.single.dict(),
+        multiple: collect.multiple.dict(),
+        trueOrFalse: collect.trueOrFalse.dict()
+    }
+
+    if (args.isSequence) {
+        singleArray = singleQ.slice(args.t1.start, args.t1.end);
+        multipleArray = multipleQ.slice(args.t2.start, args.t2.end);
+        trueOrFalseArray = trueOrFalseQ.slice(args.t3.start, args.t3.end);
+    } else {
+        for(var i=0 ; i<args.t1.length; i++){
+            var item = args.t1[i];
+            singleArray.push(singleQ[item -1]);
+        }
+        for(var i=0 ; i<args.t2.length; i++){
+            var item = args.t2[i];
+            multipleArray.push(multipleQ[item -1]);
+        }
+        for(var i=0 ; i<args.t3.length; i++){
+            var item = args.t3[i];
+            trueOrFalseArray.push(trueOrFalseQ[item -1]);
+        }
+    }
+    var resultRecord = {
+        single: {},
+        multiple: {},
+        trueOrFalse: {}
+    }
+    var totalPoint = singleArray.length + multipleArray.length + trueOrFalseArray.length;
+
+    displayChooseQuestions(args.showAnswer, singleArray, $("#singleEle"), collection.single);
+    displayChooseQuestions(args.showAnswer, multipleArray, $("#multipleEl"), collection.multiple);
+    displayQuestions(args.showAnswer, trueOrFalseArray, $("#trueOrFalseEl"), collection.trueOrFalse);
+    displayOthers(args.showAnswer, $("#others"));
+
+    function displayOthers(showAnswer, el) {
+        var html = '';
+        if (showAnswer){
+            html = '<button  class="mui-btn mui-btn-block mui-btn-primary" onclick="goDoWrong()">开始做题</button>';
+        }else{
+            html = '<button class="mui-btn mui-btn-block mui-btn-primary" onclick="showExamResult();">计算得分</button>' +
+                '<button class="mui-btn mui-btn-block mui-btn-primary" onclick="goSeeWrong();">看本轮错题</button>';;
+        }
+        el.append(html);
+    }
+
+    function displayQuestions(showAnswer, questions, el, col) {
+        var html1 = '';
+        for (var i = 0; i < questions.length; i++) {
+            var item = questions[i];
+            html1 += '<li>';
+            if (showAnswer) {
+                html1 += answerHtml(item, col)
+            } else {
+                html1 += '<input type="checkbox" value="√">✔︎<input type="checkbox" value="×">✘';
+            }
+            html1 += item.question + '</li>';
+        }
+        el.append(html1);
+    }
+
+    function answerHtml(item, col) {
+        return '  <div class="mui-row">' +
+            '            <div class="mui-col-sm-3 mui-col-xs-6">' +
+            '                <p>正确答案：' + item.correctAnswer + '</p>' +
+            '            </div>' +
+            '            <div class="mui-col-sm-3 mui-col-xs-6">' +
+            '                <span value="'+ item.no +'" class="mui-icon right-star mui-active '+
+            (col[item.no]?'mui-icon-star-filled':'mui-icon-star')+
+                '"></span>' +
+            '            </div>' +
+            '        </div>';
+    }
+
+    function displayChooseQuestions(showAnswer, questions, el, col) {
+        var html1 = '';
+        for (var i = 0; i < questions.length; i++) {
+            var item = questions[i];
+            html1 += '<li>' + item.question;
+            if (showAnswer) {
+                html1 += answerHtml(item, col)
+            }
+            var answersHtml = ''
+            if (item.answerList == null) {
+                //是判断题
+                html1 += answersHtml + '</li>';
+                continue;
+            }
+            for (var j = 0; j < item.answerList.length; j++) {
+                var answer = item.answerList[j];
+                if (showAnswer) {
+                    answersHtml += '<p>' + answer.code + '.' + answer.text + '</p>';
+                } else {
+                    answersHtml += '<p>' +
+                        '<input type="checkbox" value="'+answer.code+'">' +
+                        answer.code + '.' + answer.text + '</p>';
+                }
+            }
+            html1 += answersHtml + '</li>';
+        }
+        el.append(html1);
+    }
+
+    function getPoints(arr, elStr, re) {
+        var p = 0;
+        for(var i=0; i<arr.length; i++){
+            var item = arr[i];
+            var result = '';
+            var t1 = $(elStr + " li").eq(i).first().find("input[type=checkbox]:checked");
+            for(var j=0; j<t1.length; j++){
+                result += t1[j].value;
+            }
+            if (result == item.correctAnswer) {
+                re[item.no] = true;
+                p += 1
+                continue;
+            }
+            re[item.no] = false;
+        }
+        return p;
+    }
+
+    function computeTotalPoint() {
+        var singlePoint = getPoints(singleArray, "#singleEle", resultRecord.single)
+        var multiplePoint = getPoints(multipleArray, "#multipleEl", resultRecord.multiple);
+        var trueOrFalsePoint = getPoints(trueOrFalseArray, "#trueOrFalseEl", resultRecord.trueOrFalse);
+        return singlePoint + multiplePoint + trueOrFalsePoint;
+    }
+
+    function showExamResult() {
+        var points = computeTotalPoint();
+        var html = '<div  class="mui-text-center"><h2>' + points + '分</h2>'+
+                '<p>总分：'+ totalPoint + ' </p></div>';
+        $("#pointEl").html(html);
+    }
+
+    function goSeeWrong() {
+        var danxuanTi = recorder.single.record(resultRecord.single);
+        var duoxuanTi = recorder.multiple.record(resultRecord.multiple);
+        var panduan = recorder.trueOrFalse.record(resultRecord.trueOrFalse);
+        router.pushToExam({
+            "isSequence": false,
+            "showAnswer": true,
+            "t1": danxuanTi[1],
+            "t2": duoxuanTi[1],
+            "t3": panduan[1]
+        });
+    }
+
+    function goDoWrong() {
+        args.showAnswer = false
+        router.pushToExam(args);
+    }
+
+    function addCollectEvent(elStr, col1, col2){
+        $(elStr + " .right-star").click(function (event) {
+            var no = $(this).attr("value");
+            if($(this).hasClass("mui-icon-star-filled")){
+                $(this).removeClass("mui-icon-star-filled");
+                $(this).addClass("mui-icon-star");
+                col1.remove(no);
+                delete col2[no];
+            }else{
+                $(this).removeClass("mui-icon-star");
+                $(this).addClass("mui-icon-star-filled");
+                col1.add(no);
+                col2[no] = true;
+            }
+        });
+    }
+
+    addCollectEvent("#singleEle", collect.single, collection.single);
+    addCollectEvent("#multipleEl", collect.multiple, collection.multiple);
+    addCollectEvent("#trueOrFalseEle", collect.trueOrFalse, collection.trueOrFalse);
+</script>
+</html>
